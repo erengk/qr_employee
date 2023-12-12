@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:qr_employee/screens/login_screen.dart';
+import 'package:qr_employee/services/authentication_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../utils/custom_colors.dart';
@@ -12,6 +14,18 @@ class QRScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () async {
+            await AuthenticationService().signOut();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LoginScreen(),
+              ),
+            );
+          },
+        ),
         title: const Text('QR Kodu'),
         backgroundColor: CustomColors.appBarColor,
       ),

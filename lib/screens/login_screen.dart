@@ -26,14 +26,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _checkCurrentUser() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String userId = prefs.getString(_uid)!;
+    String? userId = prefs.getString(_uid);
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => QRScreen(uid: userId),
-      ),
-    );
+    if (userId != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => QRScreen(uid: userId),
+        ),
+      );
+    }
   }
 
   @override
