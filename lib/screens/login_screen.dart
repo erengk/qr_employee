@@ -45,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: CustomColors.appBarColor,
         title: const Text('Giriş Yap'),
       ),
