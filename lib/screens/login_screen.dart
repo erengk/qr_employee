@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:qr_employee/screens/qr_screen.dart';
-import 'package:qr_employee/services/authentication_service.dart';
-import 'package:qr_employee/widgets/popup.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:qr_employee/services/auth_service.dart';
+import 'package:qr_employee/services/shared_pref.dart';
+import '../../utils/constants.dart';
 import '../../utils/custom_colors.dart';
 import '../../widgets/custom_elevated_button.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  bool _isLoggingIn = false;
+
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final String _uid = "uid";
 
   @override
   void initState() {
@@ -24,58 +26,61 @@ class _LoginScreenState extends State<LoginScreen> {
     _checkCurrentUser();
   }
 
-  void _checkCurrentUser() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userId = prefs.getString(_uid);
-
-    if (userId != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => QRScreen(uid: userId),
-        ),
-      );
+  Future<void> _checkCurrentUser() async {
+    if (await SharedPref.allExist(
+        [Constants.uidKey, Constants.userName, Constants.userPassword])) {
+      _navigateToQRScreen(await SharedPref.getString(Constants.uidKey)!);
     }
+  }
+
+  void _navigateToQRScreen(String uid) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QRScreen(uid: uid),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    var height = MediaQuery.of(context).size.height;
-    String logoImage = "assets/mekatroniklogo.png";
-
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: CustomColors.appBarColor,
-        title: const Text('Giriş Yap'),
-      ),
       backgroundColor: CustomColors.textButtonColor,
-      body: Padding(
-        padding: const EdgeInsets.all(36),
-        child: Form(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 30.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              imageContainer(logoImage, height),
-              const SizedBox(
-                height: 50,
+              Image.asset(
+                Constants.logo,
+                fit: BoxFit.fitWidth,
+                height: 150.0,
               ),
+              const SizedBox(height: 80.0),
               TextFormField(
                 controller: _usernameController,
-                decoration: const InputDecoration(labelText: 'Kullanıcı Adı'),
+                decoration: const InputDecoration(
+                  labelText: 'Kullanıcı Adı',
+                  border: OutlineInputBorder(),
+                ),
               ),
+              const SizedBox(height: 20.0),
               TextFormField(
                 controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Şifre'),
+                decoration: const InputDecoration(
+                  labelText: 'Şifre',
+                  border: OutlineInputBorder(),
+                ),
                 obscureText: true,
               ),
-              const SizedBox(
-                height: 20,
-              ),
+              const SizedBox(height: 20.0),
               CustomElevatedButton(
-                onPressed: _login,
+                onPressed: _isLoggingIn ? null : () => _login(),
                 buttonText: 'Giriş Yap',
+                child: _isLoggingIn ? const CircularProgressIndicator() : null,
               ),
+              const SizedBox(height: 20.0),
             ],
           ),
         ),
@@ -84,32 +89,30 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    String uid = await AuthenticationService().signIn(
+    setState(() => _isLoggingIn = true);
+
+    UserCredential? credential = await AuthService.signInWithEmailAndPassword(
       "${_usernameController.text}@mail.com",
       _passwordController.text,
     );
-    if (uid == "null") {
-      popUp(context, "Hatalı Giriş", "Kullanıcı adı veya Şifreniz Hatalı");
-    } else {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      prefs.setString(_uid, uid);
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => QRScreen(uid: uid),
-        ),
-      );
+
+    setState(() => _isLoggingIn = false);
+
+    if (credential == null) {
+      _showSnackBar('Giriş Yapılamadı');
+      return;
     }
+
+    SharedPref.setString(Constants.uidKey, credential.user!.uid);
+    SharedPref.setString(Constants.userName, _usernameController.text);
+    SharedPref.setString(Constants.userPassword, _passwordController.text);
+    _navigateToQRScreen(credential.user!.uid);
   }
 
-  Container imageContainer(String logoImage, double height) {
-    return Container(
-      height: height * .13,
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          fit: BoxFit.cover,
-          image: AssetImage(logoImage),
-        ),
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
       ),
     );
   }

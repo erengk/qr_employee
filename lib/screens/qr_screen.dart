@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:qr_employee/screens/login_screen.dart';
-import 'package:qr_employee/services/authentication_service.dart';
+import 'package:qr_employee/services/auth_service.dart';
+import 'package:qr_employee/services/shared_pref.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../utils/custom_colors.dart';
 
 class QRScreen extends StatelessWidget {
-  final String uid;
+  final String? uid;
 
-  const QRScreen({super.key, required this.uid});
+  const QRScreen({super.key, this.uid});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () async {
-            await AuthenticationService().signOut();
+            await AuthService.signOut();
+            await SharedPref.clear();
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => LoginScreen(),
+                builder: (context) => const LoginScreen(),
               ),
             );
           },
@@ -32,7 +34,7 @@ class QRScreen extends StatelessWidget {
       backgroundColor: CustomColors.textButtonColor,
       body: Center(
         child: QrImageView(
-          data: uid,
+          data: uid!,
           version: QrVersions.auto,
           size: 200.0,
         ),
